@@ -840,7 +840,7 @@ With SHALLOW update only todo state."
   (or ejira--user-cache
       (setq ejira--user-cache
             (append
-             '(("Unassigned" . ""))
+             '(("" . "Unassigned"))
              (remove nil
                      (mapcar (lambda (user)
                                (let ((name (decode-coding-string
@@ -854,12 +854,12 @@ With SHALLOW update only todo state."
 ;; of the link fools org to think this is a file path.
 (org-link-set-parameters "jirauser" :follow nil :export nil)
 (defun ejira-mention-user ()
-  "Insert a username link. FIXME: Needs to be an inline node."
+  "Insert a username link."
   (interactive)
   (let* ((jira-users (ejira--get-users))
          (fullname (completing-read "User: " (mapcar 'cdr jira-users)))
-         (username (car (rassoc fullname jira-users))))
-    (insert (format "[[jirauser:~%s]]" fullname))))
+         (account-id (car (rassoc fullname jira-users))))
+    (insert (format "[[~accountId:%s][%s]]" account-id fullname))))
 
 (defun ejira--get-assignable-users (issue-key)
   "Fetch users that issue ISSUE-KEY can be assigned to."
