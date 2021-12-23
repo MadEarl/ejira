@@ -384,7 +384,7 @@ With prefix-argument TO-ME assign to me."
     (define-key ejira-map (kbd "C-c ia") 'ejira-assign-issue)
     (define-key ejira-map (kbd "C-c it") 'ejira-progress-issue)
     (define-key ejira-map (kbd "C-c ip") 'ejira-if-plan-issue)
-    (define-key ejira-map (kbd "C-c iu") 'ejira-if-unplan-issue)
+    (define-key ejira-map (kbd "C-c in") 'ejira-if-unplan-issue)
     (define-key ejira-map (kbd "C-c ii") 'ejira-set-issuetype)
     (define-key ejira-map (kbd "C-c es") 'ejira-set-epic)
     (define-key ejira-map (kbd "C-c if") 'ejira-focus-on-issue)
