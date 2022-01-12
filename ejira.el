@@ -126,7 +126,7 @@ description, and for the comment the body."
   (browse-url (concat (replace-regexp-in-string "/*$" "" jiralib2-url) "/browse/" (ejira-issue-id-under-point))))
 
 
-(defun ejira--heading-to-item (heading project-id type &rest args)
+(defun ejira--heading-to-item (heading project-id type exclude-subheadings &rest args)
   "Create an item from HEADING of TYPE into PROJECT-ID with parameters ARGS."
   (let* ((summary (ejira--strip-properties (org-get-heading t t t t)))
          (description (ejira-parser-org-to-jira (ejira--get-heading-body heading exclude-subheadings)))
