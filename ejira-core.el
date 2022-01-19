@@ -411,15 +411,15 @@ If the issue heading does not exist, fallback to full update."
         (when-let ((minutes (and estimate (/ estimate 60))))
           (org-set-property "Effort" (format "%02d:%02d" (/ minutes 60) (% minutes 60))))
         (when-let ((minutes (and remaining-estimate (/ remaining-estimate 60))))
-          (org-set-property "Left" (format "%02d:%02d" (/ minutes 60) (% minutes 60)))))
+          (org-set-property "Left" (format "%02d:%02d" (/ minutes 60) (% minutes 60))))
 
       ;; (when ejira-custom-fields-list
       ;;   (loop for custom-field in ejira-custom-fields-list do
       ;;         (when (symbol-value (intern (downcase (car custom-field))))
       ;;           (org-set-property (car custom-field) (symbol-value (intern (downcase (car custom-field))))))))
 
-      (when wochenplanung (org-set-property "Wochenplanung" (or wochenplanung "")))
-      (when startdatum (org-set-property "Startdatum" (or startdatum "")))
+        (when wochenplanung (org-set-property "Wochenplanung" (or wochenplanung "")))
+        (when startdatum (org-set-property "Startdatum" (or startdatum ""))))
       
       (ejira--get-subheading (ejira--find-heading key) ejira-description-heading-name)
       (ejira--get-subheading (ejira--find-heading key) ejira-comments-heading-name)
