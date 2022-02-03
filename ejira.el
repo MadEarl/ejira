@@ -148,6 +148,8 @@ With prefix argument FOCUS, focus the issue after creating."
                     (point-marker)))
          (project-id (ejira--select-project))
          (key (when project-id (ejira--heading-to-item heading project-id "Task" nil))))
+    (org-set-property "Jira" key)
+    (org-set-property "Created" (format-time-string "%Y-%m-%d %H:%M:%S" nil "Europe/Berlin"))
 
     (when (and key focus)
       (ejira-focus-on-issue key))))
