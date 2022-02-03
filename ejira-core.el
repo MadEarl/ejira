@@ -312,7 +312,7 @@ The slots are parsed from struct TYPE."
 (defmacro ejira--with-point-on (id &rest body)
   "Execute BODY with point on the item ID header."
   `(org-with-point-at (or (ejira--find-heading ,id)
-                          (error "Item %s not found" ,id))
+                          (error "Item %s not found in with-point-on" ,id))
      ,@body))
 (function-put #'ejira--with-point-on 'lisp-indent-function 'defun)
 
@@ -666,6 +666,7 @@ of the document."
          (insert "<ejira new heading>")
          (org-set-property "ID" id)
          (org-beginning-of-line)
+         (save-buffer)
          (org-id-update-id-locations nil t)
          (point-marker))))))
 
