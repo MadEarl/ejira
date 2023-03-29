@@ -163,6 +163,8 @@ With prefix argument FOCUS, focus the issue after creating."
   (let* ((level (outline-level))
          (project-id (ejira--select-project))
          (story (ejira--heading-to-item (point-marker) project-id ejira-story-type-name t)))
+      (org-set-property "Jira" story)
+      (org-set-property "Created" (format-time-string "%Y-%m-%d %H:%M:%S" nil "Europe/Berlin"))
     (outline-next-heading)
     (when (< level (outline-level))
       (condition-case nil
@@ -175,8 +177,6 @@ With prefix argument FOCUS, focus the issue after creating."
                                         `(parent . ((key . ,story))))
                 (outline-forward-same-level 1)
                 t))
-        (org-set-property "Jira" key)
-        (org-set-property "Created" (format-time-string "%Y-%m-%d %H:%M:%S" nil "Europe/Berlin"))
         (error (message "Done."))))
     (when (and story focus)
       (ejira-focus-on-issue story))))
