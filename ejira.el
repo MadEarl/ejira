@@ -26,7 +26,7 @@
 ;;; Code:
 
 (require 'org)
-(require 'dash-functional)
+(require 'dash)
 (require 'ejira-core)
 
 
