@@ -83,11 +83,11 @@ so that all priorities are valid."
 (defcustom ejira-todo-states-alist '(("To Do"       . 1)
                                      ("In Progress" . 2)
                                      ("Done"        . 3))
-  "Association list to convert from JIRA todo states to `org-mode' todo states.
+  "Association list to convert from JIRA todo states to \\='org-mode\\=' todo states.
 The org-state is defined as a number, which is a 1-based index of an element in
-`org-todo-keywords'.
+\\='org-todo-keywords\\='.
 The default value is applicable for:
- (setq org-todo-keywords '((sequence \"TODO\" \"IN PROGRESS\" \"|\" \"DONE\")))"
+ (setq org-todo-keywords \\='((sequence \"TODO\" \"IN PROGRESS\" \"|\" \"DONE\")))"
   :group 'ejira
   :tag "JIRA state map"
   :type '(alist :key-type (string :tag "JIRA State")
@@ -106,7 +106,7 @@ The default value is applicable for:
   :type 'string)
 
 (defcustom ejira-custom-fields-list nil
-  "List of (\"Name\" 'customfield_number &optional 'key) lists.
+  "List of (\"Name\" \\='customfield_number &optional \\='key) lists.
 key is given if the value is a key/value pair."
   :group 'ejira
   :type 'list)
@@ -229,7 +229,7 @@ key is given if the value is a key/value pair."
   "Parse an issue or epic structure from REST object ITEM."
   (let (add-fields)
     (when ejira-custom-fields-list
-      (loop for customs in ejira-custom-fields-list do
+      (cl-loop for customs in ejira-custom-fields-list do
              (setf add-fields (append add-fields (list (intern (concat ":"(downcase (car customs)) )))))
             (setf add-fields (append add-fields (list (apply #'ejira--alist-get item 'fields (cdr customs)))))))
     (let ((type (ejira--alist-get item 'fields 'issuetype 'name)))
@@ -325,12 +325,12 @@ If the issue heading does not exist, fallback to full update."
       (org-set-property "Assignee" (or assignee ""))
       (if assignee 
           (cond ((assoc assignee ejira-user-tag-alist)
-                 (loop for (key . value) in ejira-user-tag-alist do
+                 (cl-loop for (key . value) in ejira-user-tag-alist do
                        (org-toggle-tag value 'off))
                  (org-toggle-tag (cdr (assoc assignee ejira-user-tag-alist)) 'on))
                 (t
                  (org-toggle-tag (cdr (assoc "Default" ejira-user-tag-alist)) 'on)))
-        (loop for (key . value) in ejira-user-tag-alist do
+        (cl-loop for (key . value) in ejira-user-tag-alist do
               (org-toggle-tag value 'off))))
     
     (ejira--set-todo-state issue-key
@@ -391,12 +391,12 @@ If the issue heading does not exist, fallback to full update."
         (org-set-property "Assignee" (or assignee ""))
         (if assignee 
             (cond ((assoc assignee ejira-user-tag-alist)
-                   (loop for (key . value) in ejira-user-tag-alist do
+                   (cl-loop for (key . value) in ejira-user-tag-alist do
                          (org-toggle-tag value 'off))
                    (org-toggle-tag (cdr (assoc assignee ejira-user-tag-alist)) 'on))
                   (t
                    (org-toggle-tag (cdr (assoc "Default" ejira-user-tag-alist)) 'on)))
-          (loop for (key . value) in ejira-user-tag-alist do
+          (cl-loop for (key . value) in ejira-user-tag-alist do
                 (org-toggle-tag value 'off)))
 
         (when parent (org-set-property "Parent" parent))
@@ -832,13 +832,13 @@ With EXCLUDE-COMMENT do not include comments in the search."
 
     (if fullname
         (cond ((assoc fullname ejira-user-tag-alist)
-               (loop for (key . value) in ejira-user-tag-alist do
+               (cl-loop for (key . value) in ejira-user-tag-alist do
                      (org-toggle-tag value 'off))
                (org-toggle-tag (cdr (assoc fullname ejira-user-tag-alist)) 'on))
               (t
                (org-toggle-tag (cdr (assoc "Default" ejira-user-tag-alist)) 'on)))
       ;; We want to keep other tags, only remove Jira-related tags.
-      (loop for (key . value) in ejira-user-tag-alist do
+      (cl-loop for (key . value) in ejira-user-tag-alist do
             (org-toggle-tag value 'off)))))
 
 

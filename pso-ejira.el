@@ -24,8 +24,9 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'org)
-(require 'dash-functional)
+(require 'dash)
 (require 'ejira-core)
 
 ;;;###autoload
@@ -38,7 +39,7 @@
          (properties (save-excursion
                        (goto-char (nth 2 item))
                        (org-entry-properties)))
-         (issuetype (cdr (assoc "ISSUETYPE" properties)))
+         (issuetype (cdr (assoc "Issuetype" properties)))
          (type (cdr (assoc "TYPE" properties)))
          (project (cdr (assoc "CATEGORY" properties)))
          (description (ejira-parser-org-to-jira
@@ -72,7 +73,7 @@
                        (org-entry-properties)))
          (effort (read-string "Effort: "
                               (cond ((cdr (assoc "EFFORT" properties))
-                                     (multiple-value-bind (hours minutes) (split-string (cdr (assoc "EFFORT" properties)) ":")
+                                     (cl-multiple-value-bind (hours minutes) (split-string (cdr (assoc "EFFORT" properties)) ":")
                                        (if (string= minutes "00")
                                            (concat hours "h")
                                          (concat hours "h " minutes "m"))))
