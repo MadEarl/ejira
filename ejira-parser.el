@@ -189,63 +189,141 @@
   "Create a random string of length LENGTH containing only lowercase letters."
   (mapconcat (lambda (_) (random-alpha)) (make-list (or length 16) nil) ""))
 
-(defun ejira-parser-jira-to-org (s &optional level)
-  "Transform JIRA-style string S into org-style.
-If LEVEL is given, shift all
-headings to the right by that amount."
+(defun jsonp (string)
+  "Validates a JSON string."
   (condition-case nil
-      (let ((backslash-replacement (random-identifier 32))
-            (percent-replacement (random-identifier 32)))
-        (with-temp-buffer
-          (let ((replacements ())
-                (jira-to-org--convert-level (or level 0)))
+      (progn
+        (json-read-from-string string)
+        t)
+    (error nil)))
+
+(defun ejira-parser-jira-to-org (adf-string &optional level)
+  "Transform ADF JSON (Atlassian document format) into org-style text.
+If LEVEL is given, shift all headings to the right by that amount."
+  (let (returnvalue)
+    (cond ((jsonp adf-string)
+           (let ((adf (json-parse-string adf-string :object-type 'alist :array-type 'array)))
+             (cond ((adf-type-p "doc" adf)
+                    (cl-loop for item across (alist-get 'content adf) 
+                          collect (ejira--parse-adf-item item) into org-string-list
+                          finally (setf returnvalue (cl-format nil "~{~a~}~%" org-string-list))))
+                   (t (setq returnvalue adf-string)))))
+          ((and (listp adf-string)
+                (adf-type-p "doc" adf-string))
+           (cl-loop for item across (alist-get 'content adf-string)
+                          collect (ejira--parse-adf-item item) into org-string-list
+                          finally (setf returnvalue (cl-format nil "~{~a~}~%" org-string-list))))
+          (t (setf returnvalue adf-string)))
+    (cl-format nil "~a" returnvalue)))
+
+(defun ejira--parse-adf-item (item)
+  "Parse individual items of an ADF document's content node and convert to ORG string"
+  (let (output)
+    (if (vectorp item)
+        (setf output (append output (cl-loop for subitem across item
+                                          collect (ejira--parse-adf-item subitem) into suboutput
+                                          finally (return (cl-format nil "~{~a~}" suboutput)))))
+      (cond ((adf-type-p "paragraph" item)
+             (setf output (append output (cl-loop for subitem across (alist-get 'content item)
+                                               collect (ejira--parse-adf-item subitem) into suboutput
+                                               finally (return (cl-format nil "~{~a~}~%~%" suboutput))))))
+            ((adf-type-p "text" item)
+             (cond ((alist-get 'marks item)
+                    (let ((startmark)
+                          (endmark))
+                      (cl-loop for mark across (alist-get 'marks item) do
+                            (cond ((adf-type-p "code" mark)
+                                   (setf startmark (append startmark (list "+begin_src\n")))
+                                   (setf endmark (append (list "\n+end_src") endmark)))
+                                  ((adf-type-p "strong" mark)
+                                   (setf startmark (append startmark (list "*")))
+                                   (setf endmark (append (list "*") endmark)))
+                                  ((adf-type-p "underline" mark)
+                                   (setf startmark (append startmark (list "_")))
+                                   (setf endmark (append (list "_") endmark)))
+                                  ((adf-type-p "em" mark)
+                                   (setf startmark (append startmark (list "/")))
+                                   (setf endmark (append (list "/") endmark)))
+                                  ((adf-type-p "strike" mark)
+                                   (setf startmark (append startmark (list "+")))
+                                   (setf endmark (append (list  "+") endmark)))))
+                      (setf output (append output (cl-format nil "~{~a~}~a~{~a~}" startmark (alist-get 'text item) endmark)))))
+                   (t 
+                    (setf output (append output (alist-get 'text item))))))
+            ((adf-type-p "inlineCard" item)
+             (setf output (append output (ejira--alist-get item 'inlineCard 'attrs 'url ))))
+            ((adf-type-p "bulletList" item)
+             (setf output (append output
+                                  (cl-loop for subitem across (alist-get 'content item)
+                                           collect (ejira--parse-adf-item (alist-get 'content subitem))
+                                           into suboutput
+                                           finally (return (cl-format nil "~{- ~a~}" suboutput))))))
+            ((adf-type-p "hardBreak" item)
+             (setf output (append output (cl-format nil "~%~%")))))
+      (cl-format nil "~a" output))))
+
+(defun adf-type-p (type item)
+  (equal type (alist-get 'type item)))
+
+
+    
+;; (defun ejira-parser-jira-to-org (s &optional level)
+;;   "Transform JIRA-style string S into org-style.
+;; If LEVEL is given, shift all
+;; headings to the right by that amount."
+;;   (condition-case nil
+;;       (let ((backslash-replacement (random-identifier 32))
+;;             (percent-replacement (random-identifier 32)))
+;;         (with-temp-buffer
+;;           (let ((replacements ())
+;;                 (jira-to-org--convert-level (or level 0)))
             
-            ;; Literal backslashes need to be handled separately, they mess up
-            ;; other regexp patching. They get replaced with the identifier
-            ;; first, and restored last.
-            (insert (decode-coding-string
-                     (s-replace-all
-                      `(("\\" . ,backslash-replacement)
-                        ("%"    . ,percent-replacement))
-                      s)
-                     'utf-8))
-            (cl-loop
-             for (pattern . replacement) in ejira-parser-patterns do
-             (goto-char (point-min))
-             (while (re-search-forward pattern nil t)
-               (let ((identifier (random-identifier 32))
-                     (rep (funcall replacement)))
-                 (replace-match identifier)
+;;             ;; Literal backslashes need to be handled separately, they mess up
+;;             ;; other regexp patching. They get replaced with the identifier
+;;             ;; first, and restored last.
+;;             (insert (decode-coding-string
+;;                      (s-replace-all
+;;                       `(("\\" . ,backslash-replacement)
+;;                         ("%"    . ,percent-replacement))
+;;                       s)
+;;                      'utf-8))
+;;             (cl-loop
+;;              for (pattern . replacement) in ejira-parser-patterns do
+;;              (goto-char (point-min))
+;;              (while (re-search-forward pattern nil t)
+;;                (let ((identifier (random-identifier 32))
+;;                      (rep (funcall replacement)))
+;;                  (replace-match identifier)
                  
-                 ;; Prepend to the list so that the replacements will be applied in
-                 ;; reverse order.
-                 (add-to-list 'replacements `(,identifier . ,rep)))))
+;;                  ;; Prepend to the list so that the replacements will be applied in
+;;                  ;; reverse order.
+;;                  (add-to-list 'replacements `(,identifier . ,rep)))))
             
-            (mapc
-             (lambda (r)
-               (goto-char (point-min))
-               (search-forward (car r))
-               (replace-match (cdr r)))
-             replacements)
-            (goto-char (point-min))
-            (let ((counters (make-list 6 1)))  ; JIRA Supports 6 levels of headings
-              (dolist (n (split-string (buffer-string) "\n"))
-                (cond ((search-forward-regexp "^\\([[:blank:]]*\\)########"
-                                              (line-end-position) t)
-                       (let ((level (/ (length (match-string 1)) 4)))
-                         (replace-match (format "%s%i." (match-string 1) (nth level counters)))
-                         (setcar (nthcdr level counters) (1+ (nth level counters)))))
-                      ((search-forward-regexp "^\\([[:blank:]]*\\)- " (line-end-position) t)
-                       nil)
-                      (t (setq counters (make-list 6 1))))
-                (forward-line 1)))
-            (delete-trailing-whitespace))
+;;             (mapc
+;;              (lambda (r)
+;;                (goto-char (point-min))
+;;                (search-forward (car r))
+;;                (replace-match (cdr r)))
+;;              replacements)
+;;             (goto-char (point-min))
+;;             (let ((counters (make-list 6 1)))  ; JIRA Supports 6 levels of headings
+;;               (dolist (n (split-string (buffer-string) "\n"))
+;;                 (cond ((search-forward-regexp "^\\([[:blank:]]*\\)########"
+;;                                               (line-end-position) t)
+;;                        (let ((level (/ (length (match-string 1)) 4)))
+;;                          (replace-match (format "%s%i." (match-string 1) (nth level counters)))
+;;                          (setcar (nthcdr level counters) (1+ (nth level counters)))))
+;;                       ((search-forward-regexp "^\\([[:blank:]]*\\)- " (line-end-position) t)
+;;                        nil)
+;;                       (t (setq counters (make-list 6 1))))
+;;                 (forward-line 1)))
+;;             (delete-trailing-whitespace))
             
-          (s-replace-all
-           `((,backslash-replacement . "\\")
-             (,percent-replacement   . "%"))
-           (buffer-string))))
-    (error s)))
+;;           (s-replace-all
+;;            `((,backslash-replacement . "\\")
+;;              (,percent-replacement   . "%"))
+;;            (buffer-string))))
+;;     (error s)))
 
 (provide 'ejira-parser)
 ;;; ejira-parser.el ends here

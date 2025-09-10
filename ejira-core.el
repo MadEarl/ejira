@@ -223,7 +223,7 @@ key is given if the value is a key/value pair."
    :author (ejira--alist-get comment 'author 'displayName)
    :created (ejira--date-to-time (ejira--alist-get comment 'fields 'created))
    :updated (ejira--date-to-time (ejira--alist-get comment 'fields 'updated))
-   :body (ejira--alist-get comment 'body)))
+   :body (ejira-parser-jira-to-org (ejira--alist-get comment 'body))))
 
 (defun ejira--parse-item (item)
   "Parse an issue or epic structure from REST object ITEM."
@@ -254,9 +254,9 @@ key is given if the value is a key/value pair."
         :parent (when (equal type ejira-subtask-type-name)
                   (ejira--alist-get item 'fields 'parent 'key))
         :priority (ejira--alist-get item 'fields 'priority 'name)
-        :summary (ejira--parse-body (ejira--alist-get item 'fields 'summary))
-        :description (ejira--alist-get item 'fields 'description)
-        :comments (mapcar #'ejira--parse-comment
+        :summary (ejira-parser-jira-to-org (ejira--alist-get item 'fields 'summary))
+        :description (ejira-parser-jira-to-org (ejira--alist-get item 'fields 'description))
+        :comments (cl-map 'vector #'ejira--parse-comment
                           (ejira--alist-get item 'fields 'comment 'comments))
         add-fields))))
 
@@ -417,7 +417,7 @@ If the issue heading does not exist, fallback to full update."
       ;;         (when (symbol-value (intern (downcase (car custom-field))))
       ;;           (org-set-property (car custom-field) (symbol-value (intern (downcase (car custom-field))))))))
 
-        (when wochenplanung (org-set-property "Wochenplanung" (or wochenplanung "")))
+        (when wochenplanung (org-set-property "Wochenplanung" (or (alist-get 'value (aref wochenplanung 0)) "")))
         (when startdatum (org-set-property "Startdatum" (or startdatum ""))))
       
       (ejira--get-subheading (ejira--find-heading key) ejira-description-heading-name)
@@ -549,25 +549,25 @@ The content will be adjusted based on the heading level."
                    (search-forward-regexp "^\\**" (line-end-position) t)
                    (length (or (match-data) ""))))))
 
-    (ejira--set-heading-body heading (ejira--parse-body content (+ 2 level)))))
+    (ejira--set-heading-body heading (ejira-parser-jira-to-org content (+ 2 level)))))
 
 (defun ejira--find-task-subheading (id heading)
   "Return marker to the subheading HEADING of task ID."
   (ejira--with-point-on id
     (ejira--find-child-heading heading)))
 
-(defun ejira--parse-body (body &optional level)
-  "Parse a JIRA BODY to insert it inside org header.
-If LEVEL is given, shift all heading by it."
-  (cl-flet ((r (a b c) (replace-regexp-in-string a b c)))
-    (concat
-     (s-trim
-      (ejira-parser-jira-to-org
-       (r "" ""    ; Windows line-endings
-          (r " " " " ; Non-breaking space, JIRA likes these, Emacs doesn't
-             (decode-coding-string (or body "") 'utf-8)))
-       level))
-     "")))
+;; (defun ejira--parse-body (body &optional level)
+;;   "Parse a JIRA BODY to insert it inside org header.
+;; If LEVEL is given, shift all heading by it."
+;;   (cl-flet ((r (a b c) (replace-regexp-in-string a b c)))
+;;     (concat
+;;      (s-trim
+;;       (ejira-parser-jira-to-org
+;;        (r "" ""    ; Windows line-endings
+;;           (r " " " " ; Non-breaking space, JIRA likes these, Emacs doesn't
+;;              (decode-coding-string (or body "") 'utf-8)))
+;;        level))
+;;      "")))
 
 (defun ejira--get-project (key)
   "Get project id of item KEY."
