@@ -72,6 +72,7 @@
 (defun ejira-parser-jira-to-org (adf-input &optional level)
   "Transform ADF JSON (Atlassian document format) into org-style text.
 If LEVEL is given, shift all headings to the right by that amount."
+  ;; (message (cl-format nil "ADF-Input: =======~%~a~% END input =====~%" adf-input))
   (let (returnvalue)
     (cond ((jsonp adf-input)
            (let ((adf (json-parse-string adf-input :object-type 'alist :array-type 'array)))
@@ -81,8 +82,7 @@ If LEVEL is given, shift all headings to the right by that amount."
           ((and (listp adf-input)
                 (ejira3-adf-type-p "doc" adf-input))
            (setf returnvalue (ejira3--parse-adf-vector (alist-get 'content adf-input))))
-          (t (setf returnvalue "===ejira3-parse-error-not-json===")))
-    ;; (message (cl-format nil "~a" returnvalue))
+          (t (setf returnvalue adf-input)))
     (cl-format nil "~a" returnvalue)))
 
 (defun ejira3-adf-type-p (type item)
@@ -98,17 +98,25 @@ If LEVEL is given, shift all headings to the right by that amount."
     ;; (message (cl-format nil "Type: ==================== ~%~a" type))    
     (pcase type
       ("doc" (ejira3--parse-adf-vector content))
-      ("paragraph" (if content (cl-format nil "~a~&" (ejira3--parse-adf-vector content)) " "))
+      ("paragraph" (if content (cl-format nil "~a~&~%" (ejira3--parse-adf-vector content)) " "))
       ("text" (ejira3--adf-text-to-org text marks))
       ("heading" (let ((adf-level (or (alist-get 'level attrs) 1)))
-                   (concat (make-string (if (numperp level) (+ level adf-level ) level) ?*) " " (ejira3--parse-adf-vector content) "\n\n")))
+                   (concat (make-string (if (numperp level) (+ level adf-level) level) ?*) " " (ejira3--parse-adf-vector content) "\n\n")))
       ("codeBlock" (concat "#+BEGIN_SRC " (or (alist-get 'language attrs) "") "\n"
                            (ejira3--parse-adf-vector content)
-                          "#+END_SRC\n\n"))
-      ("bulletList" (concat (mapconcat (lambda (item) (concat "- " (ejira3--parse-adf-vector (alist-get 'content item))))
-                                       content "\n") "\n"))
-      ("orderedList" (concat (mapconcat (lambda (item) (concat "1. " (ejira3--parse-adf-vector (alist-get 'content item))))
-                                        content "\n") "\n"))
+                           "#+END_SRC\n\n"))
+      ("bulletList" (concat
+                     (mapconcat
+                      (lambda (item)
+                        (concat "- " (s-trim (ejira3--parse-adf-vector (alist-get 'content item)))))
+                      content "\n")
+                     "\n\n"))
+       ("orderedList" (concat
+                       (mapconcat
+                        (lambda (item)
+                          (concat "1. " (s-trim (ejira3--parse-adf-vector (alist-get 'content item)))))
+                        content "\n")
+                       "\n\n"))
       ("hardBreak" "\n")
       ("table" (ejira3--adf-table-to-org content))
       (_ ""))))
@@ -116,7 +124,7 @@ If LEVEL is given, shift all headings to the right by that amount."
 (defun ejira3--adf-table-to-org (content)
   "Convert Table from ADF to Org. CONTENT is the content vector of the table node.
 Since Org tables are limited to single line, we discard what does not fit."
-  ;; (message (cl-format nil "Content: ==================== ~%~a" content))
+  (message (cl-format nil "Table content: ==================== ~%~a~%END content ==================~%" content))
   (let ((table)
         (header))
     (cl-loop for row across content do
@@ -129,7 +137,7 @@ Since Org tables are limited to single line, we discard what does not fit."
                       finally (if header
                                   (setf table (append table (list (mapcar #'s-trim row-contents)) (list (list 'header))))
                                 (setf table (append table (list (mapcar #'s-trim row-contents)))))
-                                ;; (message (cl-format nil "+++++++ Table: ~a" table)))
+                      (message (cl-format nil "+++++++ Table: ~a" table)))
              finally (return
                       (cl-format nil "~{|~a|~%~}"
                                  (cl-loop for row-items in table
