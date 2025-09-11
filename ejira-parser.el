@@ -119,6 +119,7 @@ If LEVEL is given, shift all headings to the right by that amount."
                        "\n\n"))
       ("hardBreak" "\n")
       ("table" (ejira3--adf-table-to-org content))
+      ("mention" (cl-format nil "[[~~accountid:~a][~a]] " (alist-get 'id attrs) (subseq (alist-get 'text attrs) 1)))
       (_ ""))))
 
 (defun ejira3--adf-table-to-org (content)
