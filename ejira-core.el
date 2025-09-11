@@ -255,7 +255,7 @@ key is given if the value is a key/value pair."
                   (ejira--alist-get item 'fields 'parent 'key))
         :priority (ejira--alist-get item 'fields 'priority 'name)
         :summary (ejira-parser-jira-to-org (ejira--alist-get item 'fields 'summary))
-        :description (ejira-parser-jira-to-org (ejira--alist-get item 'fields 'description))
+        :description (ejira-parser-jira-to-org (alist-get 'description (alist-get 'fields item)))
         :comments (cl-map 'vector #'ejira--parse-comment
                           (ejira--alist-get item 'fields 'comment 'comments))
         add-fields))))
