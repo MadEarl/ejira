@@ -88,13 +88,14 @@ If LEVEL is given, shift all headings to the right by that amount."
 (defun ejira3-adf-type-p (type item)
   (equal type (alist-get 'type item)))
 
-(defun ejira3--parse-adf-node (node &optional level)
+(defun ejira3--parse-adf-node (node &optional level parent)
   "Convert a single ADF node to Org-mode."
   (let ((type (alist-get 'type node))
         (content (alist-get 'content node))
         (text (alist-get 'text node))
         (marks (alist-get 'marks node))
-        (attrs (alist-get 'attrs node)))
+        (attrs (alist-get 'attrs node))
+        (indentlevel (if parent parent 0)))
     ;; (message (cl-format nil "Type: ==================== ~%~a" type))    
     (pcase type
       ("doc" (ejira3--parse-adf-vector content))
@@ -108,13 +109,13 @@ If LEVEL is given, shift all headings to the right by that amount."
       ("bulletList" (concat
                      (mapconcat
                       (lambda (item)
-                        (concat "- " (s-trim (ejira3--parse-adf-vector (alist-get 'content item)))))
+                        (concat (make-string (* 2 indentlevel) ? ) "- " (s-trim (ejira3--parse-adf-vector (alist-get 'content item) level (1+ indentlevel)))))
                       content "\n")
-                     "\n\n"))
+                     (if (> indentlevel 0) "\n" "\n\n")))
        ("orderedList" (concat
                        (mapconcat
                         (lambda (item)
-                          (concat "1. " (s-trim (ejira3--parse-adf-vector (alist-get 'content item)))))
+                        (concat (make-string (* 2 indentlevel) ? ) "1. " (s-trim (ejira3--parse-adf-vector (alist-get 'content item) level (1+ indentlevel)))))
                         content "\n")
                        "\n\n"))
       ("hardBreak" "\n")
@@ -146,22 +147,22 @@ Since Org tables are limited to single line, we discard what does not fit."
                                                       "-----"
                                                     (cl-format nil "~{~a ~^| ~}" row-items))))))))
 
-(defun ejira3--parse-adf-vector (vec &optional level)
+(defun ejira3--parse-adf-vector (vec &optional level parent)
   "Convert an ADF array parsed into a Lisp vector.
 Returns a string in Org markup."
   (if (not (vectorp vec))
       "==ejira3-parse-error-no-vector==="
     (loop for obj across vec
-          collect (ejira3--parse-adf-node obj level) into collection
+          collect (ejira3--parse-adf-node obj level parent) into collection
           finally (return (cl-format nil "~{~a~}" collection)))))
 
-(defun ejira3--parse-adf-object (obj &optional level)
+(defun ejira3--parse-adf-object (obj &optional level parent)
   "Convert an ADF object parsed into a lisp list.
 Returns a string in Org markup."
   (if (not (listp obj))
       "==ejira3-parse-error-no-list==="
     (loop for item in obj
-          collect (ejira3--parse-adf-node item) into collection
+          collect (ejira3--parse-adf-node item level parent) into collection
           finally (return (cl-format nil "~{~a~}" collection)))))
 
 (defun ejira3--adf-text-to-org (text marks)
