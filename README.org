@@ -1,3 +1,11 @@
+* Obsolete
+
+This package is now obsolete. If you need support for Jira API v2, please use the package this is forked from.
+
+I have done a major rework for API v3 and called it Ejira3. Along with its dependencies jiralib3 and ox-jira3, it lives on Sourcehut.
+
+Get it here: [[https://git.sr.ht/~madearl/ejira3]]
+
 * JIRA integration to Emacs org-mode
 ** Features
 - Two-way synchronization between JIRA and =org-mode=.
